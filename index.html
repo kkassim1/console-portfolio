@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Kwam — Projects Console</title>
+    <meta
+      name="description"
+      content="An interactive 3D console. Each project is a cartridge — pick one to load it up."
+    />
+    <!-- Open Graph / social unfurl: crawlers can't read the canvas, so describe it here -->
+    <meta property="og:title" content="Kwam — Projects Console" />
+    <meta property="og:description" content="An interactive 3D console. Each project is a cartridge." />
+    <meta property="og:type" content="website" />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <header class="site-header">
+      <a class="brand" href="#" aria-label="Back to console home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>KWAM<span class="brand-dim">.DEV</span></span>
+      </a>
+      <div class="system-status" aria-label="System online">
+        <span class="status-light" aria-hidden="true"></span>
+        SYSTEM ONLINE
+      </div>
+    </header>
+
+    <section class="hero-copy" aria-labelledby="hero-title">
+      <p class="eyebrow">PLAYER ONE / PORTFOLIO</p>
+      <h1 id="hero-title">Pick a project.<br /><span>Load the story.</span></h1>
+      <p class="hero-description">A collection of games, tools, and digital experiments—built one cartridge at a time.</p>
+    </section>
+
+    <nav class="project-dock" aria-label="Select a project">
+      <p class="dock-label"><span>PROJECT LIBRARY</span><span id="project-count"></span></p>
+      <div id="project-list" class="project-list"></div>
+    </nav>
+
+    <div id="hint" class="hint" aria-hidden="true">
+      <span class="mouse-icon"></span>
+      Drag to explore <i></i> Select a cartridge to load
+    </div>
+
+    <div id="detail" class="detail" hidden>
+      <button id="detail-close" class="detail-close" aria-label="Back to console"><span>&larr;</span> Back to library</button>
+      <div class="tv-set" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+        <div class="tv-shell">
+          <div class="tv-screen">
+            <div class="tv-scanlines" aria-hidden="true"></div>
+            <div id="tv-boot" class="tv-boot" aria-hidden="true">
+              <span>KWAM PROJECT SYSTEM</span>
+              <strong>READING CARTRIDGE...</strong>
+              <i></i>
+            </div>
+            <div id="detail-card" class="detail-card">
+              <p class="detail-kicker"><span id="detail-number"></span> / NOW PLAYING</p>
+              <h1 id="detail-title"></h1>
+              <p id="detail-tagline" class="detail-tagline"></p>
+              <p id="detail-tags" class="detail-tags"></p>
+              <p id="detail-desc"></p>
+              <div id="detail-links" class="detail-links"></div>
+            </div>
+          </div>
+          <div class="tv-controls" aria-hidden="true">
+            <span class="tv-speaker"></span>
+            <span class="tv-power"></span>
+            <span class="tv-dial"></span>
+          </div>
+        </div>
+        <div class="tv-neck" aria-hidden="true"></div>
+        <div class="tv-foot" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <!--
+      Fallback + SEO content. Real HTML so crawlers and no-WebGL visitors get
+      the full project list. JS hides this and reveals the canvas when WebGL is available.
+    -->
+    <main id="fallback" class="fallback">
+      <header class="fallback-head">
+        <p class="eyebrow">KWAM.DEV / PROJECT LIBRARY</p>
+        <h1>Games, tools & experiments.</h1>
+        <p>The 3D console isn't available on this device, but every project is still here.</p>
+      </header>
+      <ul id="fallback-grid" class="fallback-grid"><!-- populated by JS from the same data --></ul>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
