@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { projects } from './projects.js';
 
@@ -54,9 +55,10 @@ function bootScene() {
   scene.add(stage);
 
   const room = buildRoom(stage, isTouch);
-  const consoleModel = buildConsole();
+  const consoleModel = buildConsoleFallback();
   consoleModel.position.set(0, 0.18, -1.05);
   stage.add(consoleModel);
+  loadModeledConsole(stage, consoleModel);
   const slot = new THREE.Object3D();
   slot.position.set(0, 1.12, -1.18);
   stage.add(slot);
@@ -405,7 +407,8 @@ function buildPoster(stage, x, y, color, smallText, title) {
   stage.add(art);
 }
 
-function buildConsole() {
+// This remains as the guaranteed, fast-loading fallback until a compressed GLB is supplied.
+function buildConsoleFallback() {
   const group = new THREE.Group();
   group.rotation.x = -0.03;
 
@@ -477,6 +480,31 @@ function buildConsole() {
   }
 
   return group;
+}
+
+function loadModeledConsole(stage, fallback) {
+  const modelUrl = import.meta.env.VITE_CONSOLE_MODEL_URL;
+  if (!modelUrl) return;
+
+  new GLTFLoader().load(
+    modelUrl,
+    (gltf) => {
+      const model = gltf.scene;
+      model.position.set(0, 0.18, -1.05);
+      model.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      stage.add(model);
+      stage.remove(fallback);
+    },
+    undefined,
+    () => {
+      // A model is an enhancement; keep the working procedural fallback if it cannot load.
+    }
+  );
 }
 
 function buildCartridges(list) {
@@ -637,16 +665,53 @@ function makeLabelTexture(data) {
   ctx.fillStyle = '#070806';
   ctx.font = '600 20px monospace';
   ctx.fillText(`KWAM.DEV / ${data.id.toUpperCase().slice(0, 12)}`, 24, 46);
-  ctx.fillStyle = '#f1f4e9';
-  ctx.font = '700 43px sans-serif';
-  wrapText(ctx, data.title, 25, 130, 458, 49, 3);
-  ctx.fillStyle = '#8f9786';
-  ctx.font = '23px monospace';
-  wrapText(ctx, data.tagline || '', 25, 375, 458, 29, 2);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
+  const drawLabel = (cover) => {
+    ctx.fillStyle = '#11130f';
+    ctx.fillRect(0, 72, canvas.width, canvas.height - 72);
+    if (cover) drawCover(ctx, cover, 16, 88, 480, 212);
+    else {
+      ctx.fillStyle = data.color;
+      ctx.globalAlpha = 0.16;
+      ctx.fillRect(16, 88, 480, 212);
+      ctx.globalAlpha = 1;
+    }
+    const titleY = cover ? 342 : 138;
+    ctx.fillStyle = '#f1f4e9';
+    ctx.font = '700 35px sans-serif';
+    wrapText(ctx, data.title, 25, titleY, 458, 40, 2);
+    ctx.fillStyle = '#8f9786';
+    ctx.font = '19px monospace';
+    wrapText(ctx, data.tagline || '', 25, 422, 458, 24, 1);
+    texture.needsUpdate = true;
+  };
+  drawLabel();
+  if (data.cover) {
+    const cover = new Image();
+    cover.decoding = 'async';
+    cover.onload = () => drawLabel(cover);
+    cover.src = data.cover;
+  }
   return texture;
+}
+
+function drawCover(ctx, image, x, y, width, height) {
+  const scale = Math.max(width / image.width, height / image.height);
+  const sourceWidth = width / scale;
+  const sourceHeight = height / scale;
+  ctx.drawImage(
+    image,
+    (image.width - sourceWidth) / 2,
+    (image.height - sourceHeight) / 2,
+    sourceWidth,
+    sourceHeight,
+    x,
+    y,
+    width,
+    height
+  );
 }
 
 function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines = Infinity) {
@@ -699,7 +764,10 @@ function openDetail(data, index) {
   document.getElementById('detail-desc').textContent = data.description;
   const links = document.getElementById('detail-links');
   links.replaceChildren();
-  (data.links || []).forEach((link) => {
+  const detailLinks = data.route
+    ? [{ label: 'Share Project Page', url: data.route }, ...(data.links || [])]
+    : data.links || [];
+  detailLinks.forEach((link) => {
     const anchor = document.createElement('a');
     anchor.href = link.url;
     anchor.textContent = link.label;
