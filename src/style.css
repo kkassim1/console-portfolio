@@ -18,7 +18,7 @@ html, body {
   margin: 0;
   width: 100%;
   height: 100%;
-  background: var(--bg);
+  background: #052b55;
   color: var(--fg);
   font-family: 'Space Grotesk', system-ui, sans-serif;
   overflow: hidden;
@@ -38,7 +38,19 @@ body::before {
 button, a { -webkit-tap-highlight-color: transparent; }
 button { font: inherit; }
 
-#app { position: fixed; inset: 0; touch-action: none; }
+#app {
+  position: fixed;
+  top: 28px;
+  left: 50%;
+  width: min(calc(100vw - 48px), calc((100vh - 56px) * 1.78));
+  height: min(calc(100vh - 56px), calc((100vw - 48px) / 1.78));
+  transform: translateX(-50%);
+  overflow: hidden;
+  border-radius: 34px;
+  touch-action: none;
+  box-shadow: 0 26px 70px rgba(0, 0, 0, .42);
+  background: #0d2948 url('/room-backplate.png') center / cover no-repeat;
+}
 canvas { display: block; }
 
 .site-header {
@@ -50,7 +62,7 @@ canvas { display: block; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: max(24px, env(safe-area-inset-top)) clamp(22px, 4vw, 64px) 0;
+  padding: 42px clamp(42px, 5vw, 72px) 0;
   pointer-events: none;
 }
 
@@ -107,6 +119,11 @@ canvas { display: block; }
   transition: opacity .25s ease, transform .25s ease;
 }
 
+@media (min-width: 821px) {
+  .hero-copy { display: none; }
+  .project-dock { bottom: 42px; right: max(42px, calc((100vw - min(calc(100vw - 48px), calc((100vh - 56px) * 1.78))) / 2 + 22px)); width: 220px; }
+}
+
 .hero-actions { display: flex; gap: 9px; margin-top: 22px; pointer-events: auto; }
 .hero-actions a { padding: 9px 11px; border: 1px solid rgba(198,255,68,.34); color: var(--acid); background: rgba(10,12,8,.58); font: 500 10px 'DM Mono', monospace; letter-spacing: .04em; text-decoration: none; transition: background .2s, color .2s; }
 .hero-actions a:hover, .hero-actions a:focus-visible { color: #11140c; background: var(--acid); outline: none; }
@@ -145,7 +162,17 @@ canvas { display: block; }
 
 .dock-label { display: flex; width: 100%; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: rgba(16, 18, 14, .8); color: var(--muted); cursor: pointer; }
 .dock-label:hover, .dock-label:focus-visible, .project-dock.is-expanded .dock-label { color: var(--acid); border-color: rgba(198,255,68,.42); outline: none; }
-.project-list { display: none; gap: 7px; margin-top: 8px; }
+.project-list {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: none;
+  width: 100%;
+  max-height: min(440px, calc(100vh - 160px));
+  gap: 7px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
 .project-dock.is-expanded .project-list { display: grid; }
 
 .project-button {
@@ -197,6 +224,24 @@ canvas { display: block; }
 .hint i { width: 3px; height: 3px; border-radius: 50%; background: #4b5147; }
 .mouse-icon { width: 12px; height: 17px; border: 1px solid #5f6659; border-radius: 6px; position: relative; }
 .mouse-icon::after { content: ''; position: absolute; top: 3px; left: 4px; width: 2px; height: 4px; background: var(--acid); border-radius: 2px; }
+
+.cartridge-tooltip {
+  position: fixed;
+  z-index: 9;
+  max-width: 260px;
+  padding: 8px 11px;
+  border: 1px solid rgba(198,255,68,.42);
+  border-radius: 5px;
+  background: rgba(8, 11, 6, .9);
+  color: var(--fg);
+  font: 500 11px 'DM Mono', monospace;
+  letter-spacing: .04em;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 14px));
+  box-shadow: 0 10px 25px rgba(0,0,0,.35);
+}
+
+.cartridge-tooltip[hidden] { display: none; }
 
 .detail {
   position: fixed;
@@ -291,12 +336,14 @@ canvas { display: block; }
 body.has-webgl .fallback { display: none; }
 
 @media (max-width: 820px) {
+  #app { inset: 0; width: 100%; height: 100%; transform: none; border-radius: 0; }
+  .site-header { padding: max(24px, env(safe-area-inset-top)) 22px 0; }
   .hero-copy { top: 96px; width: calc(100% - 44px); }
   .hero-copy h1 { font-size: clamp(38px, 12vw, 58px); }
   .hero-description { display: none; }
   .project-dock { top: auto; right: auto; bottom: max(70px, calc(env(safe-area-inset-bottom) + 56px)); left: 0; width: 100%; transform: none; padding: 0 22px; }
   .project-dock.is-hidden { transform: translateY(18px); }
-  .project-list { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; padding: 0 5px 3px; margin: 0 -5px; scroll-snap-type: x proximity; }
+  .project-list { position: static; display: flex; width: auto; max-height: none; gap: 7px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding: 0 5px 3px; margin: 8px -5px 0; scroll-snap-type: x proximity; }
   .project-list::-webkit-scrollbar { display: none; }
   .project-button { flex: 0 0 min(230px, 72vw); scroll-snap-align: start; }
   .project-button:hover, .project-button:focus-visible, .project-button.active { transform: translateY(-3px); }

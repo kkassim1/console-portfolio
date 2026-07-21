@@ -16,11 +16,12 @@ if (!isWebGLAvailable()) {
 
 function bootScene() {
   const app = document.getElementById('app');
+  const useRoomBackplate = true;
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const renderer = new THREE.WebGLRenderer({ antialias: !isTouch, powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGLRenderer({ alpha: useRoomBackplate, antialias: !isTouch, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouch ? 1.6 : 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(app.clientWidth, app.clientHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
@@ -29,11 +30,13 @@ function bootScene() {
   app.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#100d0a');
-  scene.fog = new THREE.FogExp2('#100d0a', 0.034);
+  if (!useRoomBackplate) {
+    scene.background = new THREE.Color('#100d0a');
+    scene.fog = new THREE.FogExp2('#100d0a', 0.034);
+  }
 
-  const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 80);
-  const desktopPosition = new THREE.Vector3(0, 3.5, 12.65);
+  const camera = new THREE.PerspectiveCamera(39, app.clientWidth / app.clientHeight, 0.1, 80);
+  const desktopPosition = new THREE.Vector3(0, 3.1, 11.5);
   const mobilePosition = new THREE.Vector3(0, 3.7, 12.8);
   camera.position.copy(window.innerWidth < 820 ? mobilePosition : desktopPosition);
 
@@ -54,14 +57,22 @@ function bootScene() {
   stage.position.y = -0.25;
   scene.add(stage);
 
-  const room = buildRoom(stage, isTouch);
+  const room = useRoomBackplate ? buildBackplateRoom() : buildRoom(stage, isTouch);
   const consoleModel = buildConsoleFallback();
-  consoleModel.position.set(0, 0.18, -1.05);
-  stage.add(consoleModel);
-  room.bindConsole(consoleModel);
+  if (useRoomBackplate) {
+    consoleModel.position.set(0, -0.3, -0.72);
+    consoleModel.scale.setScalar(0.58);
+    stage.add(consoleModel);
+    room.bindConsole(consoleModel);
+  } else {
+    consoleModel.position.set(0, -0.04, -1.3);
+    consoleModel.scale.setScalar(0.78);
+    stage.add(consoleModel);
+    room.bindConsole(consoleModel);
+  }
   loadModeledConsole(stage, consoleModel);
   const slot = new THREE.Object3D();
-  slot.position.set(0, 1.12, -1.18);
+  slot.position.set(0, useRoomBackplate ? -0.13 : 0.82, useRoomBackplate ? -0.8 : -1.42);
   stage.add(slot);
 
   const cartridges = buildCartridges(projects);
@@ -85,6 +96,7 @@ function bootScene() {
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2(99, 99);
   const downXY = { x: 0, y: 0 };
+  const cartridgeTooltip = document.getElementById('cartridge-tooltip');
   let hovered = null;
   let selected = null;
   let cameraGoal = null;
@@ -112,18 +124,35 @@ function bootScene() {
     return hits[0].object.userData.roomAction || null;
   }
 
+  function positionCartridgeTooltip(cart) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const point = cart.mesh.getWorldPosition(new THREE.Vector3());
+    point.y += 0.48;
+    point.project(camera);
+    cartridgeTooltip.style.left = `${rect.left + ((point.x + 1) / 2) * rect.width}px`;
+    cartridgeTooltip.style.top = `${rect.top + ((1 - point.y) / 2) * rect.height}px`;
+  }
+
   renderer.domElement.addEventListener('pointermove', (event) => {
     if (selected || event.pointerType === 'touch') return;
     setPointer(event);
     hovered = pickCartridge();
     const roomAction = hovered ? null : pickRoomInteraction();
     document.body.style.cursor = hovered || roomAction ? 'pointer' : 'default';
+    if (hovered) {
+      cartridgeTooltip.textContent = hovered.data.title;
+      positionCartridgeTooltip(hovered);
+      cartridgeTooltip.hidden = false;
+    } else {
+      cartridgeTooltip.hidden = true;
+    }
     syncActiveButton(hovered?.data.id);
   });
 
   renderer.domElement.addEventListener('pointerleave', () => {
     if (!selected) {
       hovered = null;
+      cartridgeTooltip.hidden = true;
       syncActiveButton();
     }
   });
@@ -154,6 +183,7 @@ function bootScene() {
     cart.selectFrom = cart.mesh.position.clone();
     insertionStartedAt = performance.now();
     hovered = null;
+    cartridgeTooltip.hidden = true;
     controls.autoRotate = false;
     controls.enabled = false;
     document.body.style.cursor = 'default';
@@ -224,12 +254,14 @@ function bootScene() {
         mesh.position.x += (cart.baseX - mesh.position.x) * 0.09;
         mesh.position.y += (y - mesh.position.y) * 0.09;
         mesh.position.z += (cart.baseZ - mesh.position.z) * 0.09;
+        mesh.rotation.x += (cart.baseRotX - mesh.rotation.x) * 0.09;
         mesh.rotation.y += (cart.baseRotY - mesh.rotation.y) * 0.09;
         mesh.rotation.z += (cart.baseRotZ - mesh.rotation.z) * 0.09;
         const scale = isHovered ? 1.1 : 1;
         mesh.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.12);
       }
     });
+    if (hovered && !selected) positionCartridgeTooltip(hovered);
 
     if (cameraGoal) {
       camera.position.lerp(cameraGoal.position, reduceMotion ? 1 : 0.055);
@@ -243,14 +275,28 @@ function bootScene() {
   animate();
 
   window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.aspect = app.clientWidth / app.clientHeight;
     camera.fov = window.innerWidth < 520 ? 44 : 42;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(app.clientWidth, app.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouch ? 1.6 : 2));
   });
 
   window.setTimeout(hideHint, 8500);
+}
+
+function buildBackplateRoom() {
+  let consoleModel = null;
+  return {
+    pickables: [],
+    setTV() {},
+    bindConsole(model) { consoleModel = model; },
+    setPlatformMode() {},
+    interact() {},
+    update() {
+      if (consoleModel?.userData.setReady) consoleModel.userData.setReady(false);
+    },
+  };
 }
 
 function buildRoom(stage, simplified) {
@@ -289,6 +335,7 @@ function buildRoom(stage, simplified) {
   rug.position.set(0, -1.12, 1.2);
   rug.receiveShadow = true;
   stage.add(rug);
+  if (!simplified) buildCouch(stage);
   [-2.5, -1.25, 0, 1.25, 2.5].forEach((x) => {
     const stripe = new THREE.Mesh(
       new THREE.BoxGeometry(0.035, 0.01, 4.05),
@@ -303,6 +350,22 @@ function buildRoom(stage, simplified) {
   cabinet.castShadow = true;
   cabinet.receiveShadow = true;
   stage.add(cabinet);
+  [-2.02, 0, 2.02].forEach((x, index) => {
+    const cubby = new THREE.Mesh(
+      new RoundedBoxGeometry(1.52, 0.56, 0.08, 3, 0.03),
+      new THREE.MeshStandardMaterial({ color: '#100d0a', roughness: 0.85 })
+    );
+    cubby.position.set(x, -0.61, -2.075);
+    stage.add(cubby);
+    for (let item = 0; item < 3; item += 1) {
+      const media = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.33 + item * 0.05, 0.1),
+        new THREE.MeshStandardMaterial({ color: ['#263a4b', '#593829', '#394333'][item], roughness: 0.8 })
+      );
+      media.position.set(x - 0.42 + item * 0.25, -0.58, -2.02);
+      stage.add(media);
+    }
+  });
   [-1.9, 0, 1.9].forEach((x) => {
     const doorLine = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.72, 0.03), metalMat);
     doorLine.position.set(x, -0.58, -2.085);
@@ -368,8 +431,8 @@ function buildRoom(stage, simplified) {
   if (!simplified) {
     lamp = buildFloorLamp(stage);
     pickables.push(lamp.pull);
-    leftPoster = buildPoster(stage, -5.5, 2.5, '#ef4444', 'MULTIPLAYER', 'SIMON SAYS');
-    rightPoster = buildPoster(stage, 5.35, 2.5, '#5eead4', 'REALTIME', 'DEBATE APP');
+    leftPoster = buildPoster(stage, -4.45, 2.5, '#ef4444', 'MULTIPLAYER', 'SIMON SAYS');
+    rightPoster = buildPoster(stage, 4.45, 2.5, '#5eead4', 'REALTIME', 'DEBATE APP');
     leftPoster.art.userData.roomAction = 'left-poster';
     rightPoster.art.userData.roomAction = 'right-poster';
     pickables.push(leftPoster.art, rightPoster.art);
@@ -473,25 +536,25 @@ function buildRoom(stage, simplified) {
 function buildFloorLamp(stage) {
   const metal = new THREE.MeshStandardMaterial({ color: '#2f302a', roughness: 0.52, metalness: 0.4 });
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 4.15, 16), metal);
-  pole.position.set(-5.9, 0.83, -2.6);
+  pole.position.set(-3.85, 0.83, -2.6);
   stage.add(pole);
   const base = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.58, 0.12, 24), metal);
-  base.position.set(-5.9, -1.06, -2.6);
+  base.position.set(-3.85, -1.06, -2.6);
   stage.add(base);
   const shade = new THREE.Mesh(
     new THREE.CylinderGeometry(0.5, 0.82, 1.05, 24, 1, true),
     new THREE.MeshStandardMaterial({ color: '#d9b47b', roughness: 0.9, side: THREE.DoubleSide })
   );
-  shade.position.set(-5.9, 3.05, -2.6);
+  shade.position.set(-3.85, 3.05, -2.6);
   stage.add(shade);
   const light = new THREE.PointLight('#ffbd78', 32, 8, 2);
-  light.position.set(-5.9, 2.82, -2.45);
+  light.position.set(-3.85, 2.82, -2.45);
   stage.add(light);
   const pull = new THREE.Mesh(
     new THREE.BoxGeometry(0.12, 0.72, 0.12),
     new THREE.MeshStandardMaterial({ color: '#d7a849', emissive: '#8f5e16', emissiveIntensity: 0.25 })
   );
-  pull.position.set(-5.55, 2.64, -2.22);
+  pull.position.set(-3.5, 2.64, -2.22);
   pull.userData.roomAction = 'lamp';
   stage.add(pull);
   let isOn = true;
@@ -507,6 +570,29 @@ function buildFloorLamp(stage) {
       shade.material.emissiveIntensity = isOn ? 0.32 : 0;
     },
   };
+}
+
+function buildCouch(stage) {
+  const couch = new THREE.Group();
+  couch.position.set(-4.85, -0.72, -1.1);
+  couch.rotation.y = 0.2;
+  const fabric = new THREE.MeshStandardMaterial({ color: '#26313e', roughness: 0.96 });
+  const accent = new THREE.MeshStandardMaterial({ color: '#b74b2e', roughness: 0.95 });
+  const seat = new THREE.Mesh(new RoundedBoxGeometry(2.38, 0.68, 1.42, 4, 0.14), fabric);
+  couch.add(seat);
+  const back = new THREE.Mesh(new RoundedBoxGeometry(2.38, 1.1, 0.32, 4, 0.12), fabric);
+  back.position.set(0, 0.62, -0.5);
+  couch.add(back);
+  [-1.0, 1.0].forEach((x) => {
+    const arm = new THREE.Mesh(new RoundedBoxGeometry(0.3, 0.7, 1.3, 4, 0.08), fabric);
+    arm.position.set(x, 0.12, 0);
+    couch.add(arm);
+  });
+  const pillow = new THREE.Mesh(new RoundedBoxGeometry(0.72, 0.48, 0.12, 3, 0.06), accent);
+  pillow.position.set(-0.38, 0.43, 0.22);
+  pillow.rotation.set(0.12, 0.1, 0.18);
+  couch.add(pillow);
+  stage.add(couch);
 }
 
 function buildPoster(stage, x, y, color, smallText, title) {
@@ -572,7 +658,7 @@ function playControllerSound() {
 
 function buildPlatformTerminal(stage, woodMat) {
   const terminal = new THREE.Group();
-  terminal.position.set(5.35, 1.27, -3.16);
+  terminal.position.set(4.45, 1.27, -3.16);
   const shell = new THREE.Mesh(
     new RoundedBoxGeometry(1.72, 1.24, 0.62, 4, 0.11),
     new THREE.MeshStandardMaterial({ color: '#383d35', roughness: 0.48, metalness: 0.28 })
@@ -732,12 +818,12 @@ function loadModeledConsole(stage, fallback) {
 
 function buildCartridges(list) {
   const positions = [
-    [-2.2, -0.04, 1.72, 0.16, -0.05],
-    [-0.75, -0.02, 1.72, 0.05, -0.02],
-    [0.75, -0.02, 1.72, -0.05, 0.02],
-    [2.2, -0.04, 1.72, -0.16, 0.05],
-    [-0.72, -0.02, 1.07, 0.05, -0.02],
-    [0.72, -0.02, 1.07, -0.05, 0.02],
+    [-3.25, -0.58, 1.55, 0.18, -0.05],
+    [-1.95, -0.58, 1.42, 0.1, -0.03],
+    [-0.65, -0.58, 1.5, 0.03, -0.01],
+    [0.65, -0.58, 1.5, -0.03, 0.01],
+    [1.95, -0.58, 1.42, -0.1, 0.03],
+    [3.25, -0.58, 1.55, -0.18, 0.05],
   ];
 
   return list.map((data, index) => {
@@ -774,7 +860,7 @@ function buildCartridges(list) {
     }
 
     group.position.set(preset[0], preset[1], preset[2]);
-    group.rotation.set(-0.08, preset[3], preset[4]);
+    group.rotation.set(-Math.PI / 2, preset[3], preset[4]);
     group.traverse((child) => { child.userData.cartIndex = index; });
 
     return {
@@ -783,6 +869,7 @@ function buildCartridges(list) {
       baseX: preset[0],
       baseY: preset[1],
       baseZ: preset[2],
+      baseRotX: -Math.PI / 2,
       baseRotY: preset[3],
       baseRotZ: preset[4],
     };
