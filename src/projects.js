@@ -58,8 +58,10 @@ export const projects = [
     color: '#f4d35e',
     tags: ['Experience', 'Skills', 'Education'],
     description:
-      'My résumé will be available here soon. Add your PDF to public/resume/kwam-kassim-resume.pdf and this cartridge will become the quick way for visitors to view it.',
-    links: [],
+      'A snapshot of my experience, technical skills, and education. Open the PDF to learn more about my work across software, infrastructure, and platform engineering.',
+    links: [
+      { label: 'View Résumé', url: '/resume/kwam-kassim-resume.pdf' },
+    ],
   },
   {
     id: 'contact',
@@ -68,8 +70,9 @@ export const projects = [
     color: '#f472b6',
     tags: ['GitHub', 'Collaboration'],
     description:
-      'Get in touch about platform engineering, software projects, or collaboration. Add your email address and LinkedIn profile in projects.js when you are ready to make them public.',
+      'Get in touch about platform engineering, software projects, or collaboration. I’m always interested in thoughtful technical conversations and new opportunities.',
     links: [
+      { label: 'Email Me', url: 'mailto:KassimKwam@gmail.com' },
       { label: 'GitHub Profile', url: 'https://github.com/kkassim1' },
     ],
   },
