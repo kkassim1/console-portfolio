@@ -10,6 +10,8 @@ export const projects = [
     title: 'Kwam Developer Platform',
     tagline: 'A paved road from idea to observable service.',
     color: '#c6ff44',
+    cover: '/covers/developer-platform.png',
+    route: '/project/kwam-developer-platform/',
     tags: ['OpenTofu', 'Go', 'GitHub Actions', 'Prometheus'],
     description:
       'A local-first internal developer platform demonstrating infrastructure as code and platform-as-a-product practices. It gives developers a self-service CLI, secure service templates, CI and security gates, observability, cost controls, and optional AWS infrastructure.',
@@ -22,6 +24,8 @@ export const projects = [
     title: 'Simon Says Assassin',
     tagline: 'Trust the command. Watch your back.',
     color: '#ef4444',
+    cover: '/covers/simon-says-assassin.png',
+    route: '/project/simon-says-assassin/',
     tags: ['Three.js', 'Socket.IO', 'Multiplayer'],
     description:
       'A realtime multiplayer browser game built around rooms, matchmaking, tasks, bots, and competitive scoring. The 3D client runs on Three.js while a Node and Socket.IO server keeps every player in sync.',
@@ -34,6 +38,8 @@ export const projects = [
     title: 'DebateApp',
     tagline: 'Real conversations, structured turns.',
     color: '#5eead4',
+    cover: '/covers/debate-app.png',
+    route: '/project/debate-app/',
     tags: ['React', 'Go', 'WebSockets', 'MongoDB'],
     description:
       'A realtime debate-room platform with turn-based chat, live participant updates, image uploads, voice recording, and inline video. A Go backend and WebSockets power the live experience.',
@@ -46,6 +52,8 @@ export const projects = [
     title: 'Momma Said Hurry Up',
     tagline: 'In development — 3rd-person errand runner',
     color: '#f97316',
+    cover: '/covers/mshu.png',
+    route: '/project/mshu/',
     tags: ['Godot 4.5', 'Game', 'In Development'],
     description:
       'A third-person errand-running game where you race through a stylized world and finish every task before time runs out. This project is currently in development.',
