@@ -1,9 +1,19 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 
+const siteUrl = (process.env.VITE_SITE_URL || '').replace(/\/$/, '');
+
 export default defineConfig({
   base: './',
   server: { host: true, open: true },
+  plugins: [
+    {
+      name: 'social-meta-site-url',
+      transformIndexHtml(html) {
+        return html.replaceAll('__SITE_URL__', siteUrl);
+      },
+    },
+  ],
   build: {
     rollupOptions: {
       input: {
