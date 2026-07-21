@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Kwam — Projects Console</title>
+    <title>Kwam Kassim — Platform Engineer & Projects</title>
     <meta
       name="description"
-      content="An interactive 3D console. Each project is a cartridge — pick one to load it up."
+      content="The interactive portfolio of Kwam Kassim, a platform engineer and software builder. Each project is a cartridge — pick one to load it up."
     />
     <!-- Open Graph / social unfurl: crawlers can't read the canvas, so describe it here -->
-    <meta property="og:title" content="Kwam — Projects Console" />
-    <meta property="og:description" content="An interactive 3D console. Each project is a cartridge." />
+    <meta property="og:title" content="Kwam Kassim — Platform Engineer & Projects" />
+    <meta property="og:description" content="An interactive portfolio of platform-engineering work, software projects, and games." />
     <meta property="og:type" content="website" />
     <link rel="stylesheet" href="./src/style.css" />
   </head>
@@ -20,22 +20,23 @@
     <header class="site-header">
       <a class="brand" href="#" aria-label="Back to console home">
         <span class="brand-mark" aria-hidden="true"></span>
-        <span>KWAM<span class="brand-dim">.DEV</span></span>
+        <span>KWAM<span class="brand-dim"> KASSIM</span></span>
       </a>
-      <div class="system-status" aria-label="System online">
-        <span class="status-light" aria-hidden="true"></span>
-        SYSTEM ONLINE
+      <div class="header-actions">
+        <a href="/resume/kwam-kassim-resume.pdf">Résumé</a>
+        <a href="https://www.linkedin.com/in/kwam-kassim-660836164/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+        <span class="system-status" aria-label="System online"><span class="status-light" aria-hidden="true"></span>SYSTEM ONLINE</span>
       </div>
     </header>
 
     <section class="hero-copy" aria-labelledby="hero-title">
-      <p class="eyebrow">PLAYER ONE / PORTFOLIO</p>
-      <h1 id="hero-title">Pick a project.<br /><span>Load the story.</span></h1>
-      <p class="hero-description">A collection of games, tools, and digital experiments—built one cartridge at a time.</p>
+      <p class="eyebrow">KWAM KASSIM / PLATFORM ENGINEER</p>
+      <h1 id="hero-title">Build. Ship.<br /><span>Play.</span></h1>
+      <p class="hero-description">Platform engineering, realtime apps, and games.</p>
     </section>
 
     <nav class="project-dock" aria-label="Select a project">
-      <p class="dock-label"><span>PROJECT LIBRARY</span><span id="project-count"></span></p>
+      <button id="library-toggle" class="dock-label" type="button" aria-expanded="false"><span>PROJECT LIBRARY</span><span id="project-count"></span></button>
       <div id="project-list" class="project-list"></div>
     </nav>
 
@@ -81,9 +82,9 @@
     -->
     <main id="fallback" class="fallback">
       <header class="fallback-head">
-        <p class="eyebrow">KWAM.DEV / PROJECT LIBRARY</p>
-        <h1>Games, tools & experiments.</h1>
-        <p>The 3D console isn't available on this device, but every project is still here.</p>
+        <p class="eyebrow">KWAM KASSIM / PLATFORM ENGINEER</p>
+        <h1>Platform work, software, games.</h1>
+        <p>The 3D console isn't available on this device, but Kwam’s complete project library is still here.</p>
       </header>
       <ul id="fallback-grid" class="fallback-grid"><!-- populated by JS from the same data --></ul>
     </main>

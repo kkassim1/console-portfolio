@@ -76,11 +76,12 @@ export const projects = [
     title: 'Contact',
     tagline: 'Let’s build something reliable.',
     color: '#f472b6',
-    tags: ['GitHub', 'Collaboration'],
+    tags: ['Email', 'LinkedIn', 'GitHub'],
     description:
       'Get in touch about platform engineering, software projects, or collaboration. I’m always interested in thoughtful technical conversations and new opportunities.',
     links: [
-      { label: 'Email Me', url: 'mailto:KassimKwam@gmail.com' },
+      { label: 'Email Me', url: 'mailto:kassimkwam@gmail.com' },
+      { label: 'LinkedIn', url: 'https://www.linkedin.com/in/kwam-kassim-660836164/' },
       { label: 'GitHub Profile', url: 'https://github.com/kkassim1' },
     ],
   },

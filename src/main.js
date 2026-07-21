@@ -32,8 +32,8 @@ function bootScene() {
   scene.background = new THREE.Color('#100d0a');
   scene.fog = new THREE.FogExp2('#100d0a', 0.034);
 
-  const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 80);
-  const desktopPosition = new THREE.Vector3(0, 3.35, 10.8);
+  const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 80);
+  const desktopPosition = new THREE.Vector3(0, 3.5, 12.65);
   const mobilePosition = new THREE.Vector3(0, 3.7, 12.8);
   camera.position.copy(window.innerWidth < 820 ? mobilePosition : desktopPosition);
 
@@ -58,6 +58,7 @@ function bootScene() {
   const consoleModel = buildConsoleFallback();
   consoleModel.position.set(0, 0.18, -1.05);
   stage.add(consoleModel);
+  room.bindConsole(consoleModel);
   loadModeledConsole(stage, consoleModel);
   const slot = new THREE.Object3D();
   slot.position.set(0, 1.12, -1.18);
@@ -72,12 +73,12 @@ function bootScene() {
   controls.enablePan = false;
   controls.enableZoom = !isTouch;
   controls.minDistance = 7.5;
-  controls.maxDistance = 14;
+  controls.maxDistance = 15;
   controls.minAzimuthAngle = -0.48;
   controls.maxAzimuthAngle = 0.48;
   controls.minPolarAngle = 0.78;
   controls.maxPolarAngle = 1.28;
-  controls.target.set(0, 0.25, -0.8);
+  controls.target.set(0, 0.55, -1.25);
   controls.autoRotate = !reduceMotion;
   controls.autoRotateSpeed = 0.22;
 
@@ -104,11 +105,19 @@ function bootScene() {
     return Number.isInteger(index) ? cartridges[index] : null;
   }
 
+  function pickRoomInteraction() {
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects(room.pickables, true);
+    if (!hits.length) return null;
+    return hits[0].object.userData.roomAction || null;
+  }
+
   renderer.domElement.addEventListener('pointermove', (event) => {
     if (selected || event.pointerType === 'touch') return;
     setPointer(event);
     hovered = pickCartridge();
-    document.body.style.cursor = hovered ? 'pointer' : 'default';
+    const roomAction = hovered ? null : pickRoomInteraction();
+    document.body.style.cursor = hovered || roomAction ? 'pointer' : 'default';
     syncActiveButton(hovered?.data.id);
   });
 
@@ -129,6 +138,7 @@ function bootScene() {
     setPointer(event);
     const cart = pickCartridge();
     if (cart) selectCartridge(cart);
+    else room.interact(pickRoomInteraction());
   });
 
   document.getElementById('project-list').addEventListener('click', (event) => {
@@ -152,13 +162,14 @@ function bootScene() {
     hideHint();
     syncActiveButton(cart.data.id);
     room.setTV(true, cart.data.color);
+    room.setPlatformMode(cart.data.id === 'kwam-developer-platform');
     cameraGoal = {
       position: new THREE.Vector3(0, 2.55, 8.45),
-      target: new THREE.Vector3(0, 0.55, -0.9),
+      target: new THREE.Vector3(0, 0.75, -1.25),
     };
     loadTimer = window.setTimeout(
       () => openDetail(cart.data, projects.indexOf(cart.data)),
-      reduceMotion ? 0 : 1150
+      reduceMotion ? 0 : cart.data.id === 'kwam-developer-platform' ? 3150 : 1150
     );
   }
 
@@ -169,9 +180,10 @@ function bootScene() {
     controls.enabled = true;
     controls.autoRotate = !reduceMotion;
     room.setTV(false);
+    room.setPlatformMode(false);
     cameraGoal = {
       position: (window.innerWidth < 820 ? mobilePosition : desktopPosition).clone(),
-      target: new THREE.Vector3(0, 0.25, -0.8),
+      target: new THREE.Vector3(0, 0.55, -1.25),
     };
     document.querySelector('.hero-copy').classList.remove('is-hidden');
     document.querySelector('.project-dock').classList.remove('is-hidden');
@@ -188,6 +200,7 @@ function bootScene() {
   function animate() {
     requestAnimationFrame(animate);
     const time = clock.getElapsedTime();
+    room.update(time);
 
     cartridges.forEach((cart, index) => {
       const mesh = cart.mesh;
@@ -231,7 +244,7 @@ function bootScene() {
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
-    camera.fov = window.innerWidth < 520 ? 44 : 38;
+    camera.fov = window.innerWidth < 520 ? 44 : 42;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouch ? 1.6 : 2));
@@ -311,8 +324,10 @@ function buildRoom(stage, simplified) {
   tvBezel.position.set(-0.12, 1.48, -3.075);
   stage.add(tvBezel);
 
+  const homeTVTexture = makeRoomTVTexture();
+  const systemTVTexture = makeRoomSystemTexture();
   const screenMaterial = new THREE.MeshStandardMaterial({
-    map: makeRoomTVTexture(),
+    map: homeTVTexture,
     color: '#d8e6c2',
     emissive: '#c6ff44',
     emissiveIntensity: 0.05,
@@ -328,6 +343,8 @@ function buildRoom(stage, simplified) {
   );
   tvPower.position.set(2.13, 0.67, -3.02);
   stage.add(tvPower);
+  tvScreen.userData.roomAction = 'tv';
+  const pickables = [tvScreen];
 
   const tableTop = new THREE.Mesh(new RoundedBoxGeometry(6, 0.2, 1.65, 4, 0.09), darkWoodMat);
   tableTop.position.set(0, -0.83, 1.65);
@@ -341,11 +358,21 @@ function buildRoom(stage, simplified) {
       stage.add(leg);
     });
   });
+  const controller = buildController(stage, darkWoodMat);
+  pickables.push(controller);
 
+  let lamp = null;
+  let leftPoster = null;
+  let rightPoster = null;
+  let terminal = null;
   if (!simplified) {
-    buildFloorLamp(stage);
-    buildPoster(stage, -5.5, 2.5, '#ef4444', 'MULTIPLAYER', 'SIMON SAYS');
-    buildPoster(stage, 5.35, 2.5, '#5eead4', 'REALTIME', 'DEBATE APP');
+    lamp = buildFloorLamp(stage);
+    pickables.push(lamp.pull);
+    leftPoster = buildPoster(stage, -5.5, 2.5, '#ef4444', 'MULTIPLAYER', 'SIMON SAYS');
+    rightPoster = buildPoster(stage, 5.35, 2.5, '#5eead4', 'REALTIME', 'DEBATE APP');
+    leftPoster.art.userData.roomAction = 'left-poster';
+    rightPoster.art.userData.roomAction = 'right-poster';
+    pickables.push(leftPoster.art, rightPoster.art);
 
     const shelf = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.14, 0.48), darkWoodMat);
     shelf.position.set(5.3, 0.05, -3.72);
@@ -359,16 +386,86 @@ function buildRoom(stage, simplified) {
       book.rotation.z = (index - 1) * 0.035;
       stage.add(book);
     });
+
+    terminal = buildPlatformTerminal(stage, darkWoodMat);
+  }
+
+  let active = false;
+  let tvSystemMode = false;
+  let platformMode = false;
+  let pipelineStartedAt = 0;
+  let consoleModel = null;
+  const posterSets = {
+    'left-poster': [
+      ['#ef4444', 'MULTIPLAYER', 'SIMON SAYS'],
+      ['#f97316', 'GODOT 4.5', 'HURRY UP'],
+      ['#f4d35e', 'EXPERIMENTS', 'KWAM KASSIM'],
+    ],
+    'right-poster': [
+      ['#5eead4', 'REALTIME', 'DEBATE APP'],
+      ['#c6ff44', 'PLATFORM', 'GOLDEN PATH'],
+      ['#f472b6', 'CONTACT', 'LET\'S BUILD'],
+    ],
+  };
+  const posterIndex = { 'left-poster': 0, 'right-poster': 0 };
+
+  function cyclePoster(action) {
+    const target = action === 'left-poster' ? leftPoster : rightPoster;
+    if (!target) return;
+    posterIndex[action] = (posterIndex[action] + 1) % posterSets[action].length;
+    const [color, smallText, title] = posterSets[action][posterIndex[action]];
+    target.art.material.map = makePosterTexture(color, smallText, title);
+    target.art.material.needsUpdate = true;
   }
 
   return {
-    setTV(active, color = '#c6ff44') {
+    pickables,
+    setTV(isActive, color = '#c6ff44') {
+      active = Boolean(isActive);
       const selectedColor = new THREE.Color(color);
+      screenMaterial.map = tvSystemMode ? systemTVTexture : homeTVTexture;
       screenMaterial.emissive.copy(selectedColor);
-      screenMaterial.emissiveIntensity = active ? 0.8 : 0.05;
-      tvPower.material.color.copy(active ? selectedColor : new THREE.Color('#4a4e42'));
+      screenMaterial.emissiveIntensity = active ? 0.8 : tvSystemMode ? 0.52 : 0.05;
+      tvPower.material.color.copy(active || tvSystemMode ? selectedColor : new THREE.Color('#4a4e42'));
       tvPower.material.emissive.copy(selectedColor);
-      tvPower.material.emissiveIntensity = active ? 2.2 : 0.08;
+      tvPower.material.emissiveIntensity = active || tvSystemMode ? 2.2 : 0.08;
+    },
+    bindConsole(model) { consoleModel = model; },
+    setPlatformMode(enabled) {
+      platformMode = enabled && Boolean(terminal);
+      pipelineStartedAt = performance.now();
+      if (rightPoster) {
+        rightPoster.art.material.map = platformMode
+          ? makeArchitectureTexture()
+          : makePosterTexture('#5eead4', 'REALTIME', 'DEBATE APP');
+        rightPoster.art.material.needsUpdate = true;
+      }
+      if (consoleModel?.userData.setReady) consoleModel.userData.setReady(false);
+    },
+    interact(action) {
+      if (action === 'lamp' && lamp) lamp.toggle();
+      if (action === 'tv') {
+        tvSystemMode = !tvSystemMode;
+        screenMaterial.map = tvSystemMode ? systemTVTexture : homeTVTexture;
+        screenMaterial.emissiveIntensity = active ? 0.8 : tvSystemMode ? 0.52 : 0.05;
+        tvPower.material.color.copy(tvSystemMode || active ? new THREE.Color('#c6ff44') : new THREE.Color('#4a4e42'));
+        tvPower.material.emissiveIntensity = tvSystemMode || active ? 2.2 : 0.08;
+        screenMaterial.needsUpdate = true;
+      }
+      if (action === 'left-poster' || action === 'right-poster') cyclePoster(action);
+      if (action === 'controller') {
+        controller.userData.tug = 1;
+        playControllerSound();
+      }
+    },
+    update(time) {
+      lamp?.update(time);
+      controller.userData.tug = Math.max(0, (controller.userData.tug || 0) - 0.09);
+      controller.rotation.z = 0.08 + Math.sin((controller.userData.tug || 0) * Math.PI) * 0.16;
+      if (!platformMode || !terminal) return;
+      const stageIndex = Math.min(4, Math.floor((performance.now() - pipelineStartedAt) / 720));
+      terminal.draw(stageIndex);
+      if (consoleModel?.userData.setReady) consoleModel.userData.setReady(stageIndex === 4);
     },
   };
 }
@@ -390,6 +487,26 @@ function buildFloorLamp(stage) {
   const light = new THREE.PointLight('#ffbd78', 32, 8, 2);
   light.position.set(-5.9, 2.82, -2.45);
   stage.add(light);
+  const pull = new THREE.Mesh(
+    new THREE.BoxGeometry(0.12, 0.72, 0.12),
+    new THREE.MeshStandardMaterial({ color: '#d7a849', emissive: '#8f5e16', emissiveIntensity: 0.25 })
+  );
+  pull.position.set(-5.55, 2.64, -2.22);
+  pull.userData.roomAction = 'lamp';
+  stage.add(pull);
+  let isOn = true;
+  let tug = 0;
+  return {
+    pull,
+    toggle() { isOn = !isOn; tug = 1; },
+    update() {
+      tug = Math.max(0, tug - 0.08);
+      pull.position.y = 2.64 - Math.sin(tug * Math.PI) * 0.18;
+      light.intensity += ((isOn ? 32 : 0) - light.intensity) * 0.12;
+      shade.material.emissive = new THREE.Color(isOn ? '#634018' : '#000000');
+      shade.material.emissiveIntensity = isOn ? 0.32 : 0;
+    },
+  };
 }
 
 function buildPoster(stage, x, y, color, smallText, title) {
@@ -405,6 +522,112 @@ function buildPoster(stage, x, y, color, smallText, title) {
   );
   art.position.set(x, y, -3.935);
   stage.add(art);
+  return { art };
+}
+
+function buildController(stage, material) {
+  const controller = new THREE.Group();
+  controller.position.set(-3.05, -0.62, 0.76);
+  controller.rotation.set(-0.23, 0.14, 0.08);
+  const body = new THREE.Mesh(
+    new RoundedBoxGeometry(0.9, 0.16, 0.48, 4, 0.11),
+    new THREE.MeshStandardMaterial({ color: '#3b3f38', roughness: 0.48, metalness: 0.26 })
+  );
+  controller.add(body);
+  const dpad = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.045, 0.18), material);
+  dpad.position.set(-0.22, 0.1, -0.02);
+  controller.add(dpad);
+  [-0.05, 0.12].forEach((x) => {
+    const button = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.06, 0.05, 16),
+      new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#6b1111', emissiveIntensity: 0.5 })
+    );
+    button.rotation.x = Math.PI / 2;
+    button.position.set(x, 0.1, -0.01);
+    controller.add(button);
+  });
+  controller.traverse((child) => { child.userData.roomAction = 'controller'; });
+  stage.add(controller);
+  return controller;
+}
+
+let audioContext;
+function playControllerSound() {
+  try {
+    audioContext ||= new AudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(320, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(640, audioContext.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.045, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.13);
+    oscillator.connect(gain).connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.14);
+  } catch {
+    // Sound is optional; browser audio permissions should never break interaction.
+  }
+}
+
+function buildPlatformTerminal(stage, woodMat) {
+  const terminal = new THREE.Group();
+  terminal.position.set(5.35, 1.27, -3.16);
+  const shell = new THREE.Mesh(
+    new RoundedBoxGeometry(1.72, 1.24, 0.62, 4, 0.11),
+    new THREE.MeshStandardMaterial({ color: '#383d35', roughness: 0.48, metalness: 0.28 })
+  );
+  terminal.add(shell);
+  const terminalCanvas = document.createElement('canvas');
+  terminalCanvas.width = 640;
+  terminalCanvas.height = 420;
+  const terminalTexture = new THREE.CanvasTexture(terminalCanvas);
+  terminalTexture.colorSpace = THREE.SRGBColorSpace;
+  const screen = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.38, 0.88),
+    new THREE.MeshStandardMaterial({ map: terminalTexture, emissive: '#9dff37', emissiveIntensity: 0.48, roughness: 0.4 })
+  );
+  screen.position.set(0, 0.05, 0.325);
+  terminal.add(screen);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.12, 0.78), woodMat);
+  base.position.set(0, -0.72, 0.09);
+  terminal.add(base);
+  const light = new THREE.PointLight('#c6ff44', 2.2, 2.8, 2);
+  light.position.set(0, 0.05, 0.8);
+  terminal.add(light);
+  stage.add(terminal);
+
+  const stages = ['TEMPLATE', 'TEST', 'SCAN', 'DEPLOY', 'OBSERVE'];
+  const draw = (activeStage = -1) => {
+    const ctx = terminalCanvas.getContext('2d');
+    ctx.fillStyle = '#081006';
+    ctx.fillRect(0, 0, terminalCanvas.width, terminalCanvas.height);
+    ctx.fillStyle = '#c6ff44';
+    ctx.font = '700 28px monospace';
+    ctx.fillText('PLATFORM PIPELINE', 36, 54);
+    stages.forEach((label, index) => {
+      const y = 92 + index * 60;
+      const ready = index < activeStage;
+      const current = index === activeStage;
+      ctx.fillStyle = ready ? '#c6ff44' : current ? '#f4d35e' : '#405039';
+      ctx.fillRect(40, y, 22, 22);
+      ctx.strokeStyle = index < stages.length - 1 ? '#597634' : '#081006';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(51, y + 24);
+      ctx.lineTo(51, y + 57);
+      ctx.stroke();
+      ctx.fillStyle = ready || current ? '#e8f5d9' : '#7d8876';
+      ctx.font = '600 24px monospace';
+      ctx.fillText(label, 84, y + 20);
+    });
+    ctx.fillStyle = activeStage === 4 ? '#c6ff44' : '#95a88a';
+    ctx.font = '19px monospace';
+    ctx.fillText(activeStage === 4 ? 'SERVICE READY' : 'RUNNING...', 385, 384);
+    terminalTexture.needsUpdate = true;
+  };
+  draw(-1);
+  return { screen, draw };
 }
 
 // This remains as the guaranteed, fast-loading fallback until a compressed GLB is supplied.
@@ -594,6 +817,66 @@ function makeRoomTVTexture() {
   return texture;
 }
 
+function makeRoomSystemTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 448;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#071005';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'rgba(198,255,68,.14)';
+  ctx.lineWidth = 2;
+  for (let x = 50; x < canvas.width; x += 100) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 40; y < canvas.height; y += 70) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+  ctx.fillStyle = '#c6ff44';
+  ctx.font = '600 30px monospace';
+  ctx.fillText('KWAM SYSTEM DIAGNOSTICS', 64, 78);
+  const items = [['UPTIME', '99.99%'], ['SERVICES', '06 ONLINE'], ['DEPLOYS', 'READY'], ['OBSERVE', 'ACTIVE']];
+  items.forEach(([key, value], index) => {
+    const x = 72 + (index % 2) * 470;
+    const y = 160 + Math.floor(index / 2) * 130;
+    ctx.fillStyle = '#70895c'; ctx.font = '21px monospace'; ctx.fillText(key, x, y);
+    ctx.fillStyle = '#eaf8dd'; ctx.font = '700 35px monospace'; ctx.fillText(value, x, y + 48);
+  });
+  for (let y = 0; y < canvas.height; y += 7) {
+    ctx.fillStyle = 'rgba(0,0,0,.13)'; ctx.fillRect(0, y, canvas.width, 1);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function makeArchitectureTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 640;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0b1008';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#c6ff44';
+  ctx.lineWidth = 4;
+  const nodes = [
+    [256, 116, 'CLI'], [150, 255, 'CI'], [362, 255, 'IAC'], [150, 404, 'SCAN'], [362, 404, 'OBSERVE'],
+  ];
+  [[0, 1], [0, 2], [1, 3], [2, 4], [3, 4]].forEach(([from, to]) => {
+    ctx.beginPath(); ctx.moveTo(nodes[from][0], nodes[from][1]); ctx.lineTo(nodes[to][0], nodes[to][1]); ctx.stroke();
+  });
+  nodes.forEach(([x, y, label]) => {
+    ctx.fillStyle = '#192514'; ctx.fillRect(x - 62, y - 28, 124, 56);
+    ctx.strokeStyle = '#c6ff44'; ctx.strokeRect(x - 62, y - 28, 124, 56);
+    ctx.fillStyle = '#e8f7d7'; ctx.font = '700 20px monospace'; ctx.textAlign = 'center'; ctx.fillText(label, x, y + 7);
+  });
+  ctx.textAlign = 'center'; ctx.fillStyle = '#c6ff44'; ctx.font = '700 26px monospace'; ctx.fillText('GOLDEN PATH', 256, 558);
+  ctx.fillStyle = '#8da77d'; ctx.font = '17px monospace'; ctx.fillText('PLATFORM ARCHITECTURE', 256, 590);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 function makePosterTexture(color, smallText, title) {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
@@ -734,6 +1017,12 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines = Infinity) {
 
 function buildProjectNavigation() {
   const list = document.getElementById('project-list');
+  const dock = document.querySelector('.project-dock');
+  const toggle = document.getElementById('library-toggle');
+  toggle.addEventListener('click', () => {
+    const expanded = dock.classList.toggle('is-expanded');
+    toggle.setAttribute('aria-expanded', String(expanded));
+  });
   document.getElementById('project-count').textContent = String(projects.length).padStart(2, '0');
   projects.forEach((project, index) => {
     const button = document.createElement('button');
@@ -741,6 +1030,10 @@ function buildProjectNavigation() {
     button.dataset.project = project.id;
     button.style.setProperty('--project-color', project.color);
     button.innerHTML = `<span class="project-index">${String(index + 1).padStart(2, '0')}</span><span class="project-name">${project.title}</span><span class="project-arrow" aria-hidden="true">→</span>`;
+    button.addEventListener('click', () => {
+      dock.classList.remove('is-expanded');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
     list.appendChild(button);
   });
 }
