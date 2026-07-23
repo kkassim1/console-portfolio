@@ -4,16 +4,53 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Kwam Developer Platform — Kwam Kassim</title>
-    <meta name="description" content="A local-first internal developer platform with self-service templates, CI security gates, observability, and optional AWS infrastructure." />
+    <meta name="theme-color" content="#090b08" />
+    <link rel="canonical" href="__SITE_URL__/project/kwam-developer-platform/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="description" content="A working, local-first internal developer platform prototype providing Go developers with a secure and observable golden path." />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Kwam Developer Platform — Kwam Kassim" />
-    <meta property="og:description" content="A paved road from idea to observable service." />
+    <meta property="og:description" content="A working internal developer platform prototype and golden path for Go services." />
     <meta property="og:image" content="__SITE_URL__/covers/developer-platform.png" />
     <meta property="og:url" content="__SITE_URL__/project/kwam-developer-platform/" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="__SITE_URL__/covers/developer-platform.png" />
     <link rel="stylesheet" href="../../src/project-page.css" />
   </head>
   <body>
-    <main class="page" style="--accent:#c6ff44"><a class="back" href="../../index.html">← Interactive console</a><img class="cover" src="/covers/developer-platform.png" alt="Abstract developer platform cover art" /><p class="eyebrow">PROJECT 01 / PLATFORM ENGINEERING</p><h1>Kwam Developer Platform</h1><p class="tagline">A paved road from idea to observable service.</p><p class="description">A local-first internal developer platform demonstrating infrastructure as code and platform-as-a-product practices. It provides a self-service CLI, secure service templates, CI and security gates, observability, cost controls, and optional AWS infrastructure.</p><a class="cta" href="https://github.com/kkassim1/kwam-developer-platform">View platform source ↗</a></main>
+    <main class="page" style="--accent:#c6ff44">
+      <a class="back" href="../../index.html">← Interactive console</a>
+      <img class="cover" src="/covers/developer-platform-runtime.jpg" alt="Abstract developer platform cover art" />
+      <p class="eyebrow">PROJECT 01 / PLATFORM ENGINEERING</p>
+      <h1>Kwam Developer Platform</h1>
+      <p class="tagline">A paved road from idea to observable service.</p>
+      <p class="description">Kwam Developer Platform is a working, local-first internal developer platform prototype that gives Go developers a standardized golden path for creating services. Its CLI generates services with health and readiness endpoints, basic Prometheus metrics, structured logging, a test entrypoint, non-root containers, and ownership metadata.</p>
+      <p class="description">The platform repository includes automated quality and container-security gates, local Docker Compose and Prometheus observability, and an opt-in AWS reference architecture built with OpenTofu, GitHub OIDC, ECR, and ECS/Fargate.</p>
+
+      <section class="project-section" aria-labelledby="built-heading">
+        <p class="section-label">CAPABILITIES</p>
+        <h2 id="built-heading">What I built</h2>
+        <ul class="feature-list">
+          <li>Self-service Go CLI with embedded, versioned service templates</li>
+          <li>Secure-by-default, non-root container workflow</li>
+          <li>Standard health, readiness, metrics, logging, and ownership contracts</li>
+          <li>GitHub Actions quality gates and container vulnerability scanning</li>
+          <li>Local Docker Compose runtime and Prometheus observability</li>
+          <li>Opt-in, cost-aware AWS reference architecture</li>
+          <li>Protected deploy, health verification, rollback, and cleanup workflow</li>
+          <li>Developer, operational, cost-safety, and architecture documentation</li>
+        </ul>
+      </section>
+
+      <section class="project-section" aria-labelledby="status-heading">
+        <p class="section-label">CURRENT STATE</p>
+        <h2 id="status-heading">Project status</h2>
+        <p class="description">The local developer workflow has been tested end to end, including service generation, automated tests, endpoint contracts, container builds, Docker health checks, non-root execution, and local observability.</p>
+        <p class="description">The AWS reference architecture and protected deployment workflow are implemented and statically validated but have not been applied to an AWS account. Therefore, I describe the project as deployment-ready rather than currently cloud-hosted.</p>
+        <p class="description">Reusable CI and deployment workflows for standalone generated repositories, along with existing-application validation and registration, are the next milestones.</p>
+      </section>
+
+      <a class="cta" href="https://github.com/kkassim1/kwam-developer-platform">View platform source ↗</a>
+    </main>
   </body>
 </html>
