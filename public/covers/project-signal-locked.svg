@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Unannounced game under construction</title>
+  <desc id="desc">An orange and black under-construction warning cover for an unannounced project.</desc>
+  <defs>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#f97316" stroke-opacity=".1" stroke-width="2"/>
+    </pattern>
+    <pattern id="hatch" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="12" height="28" fill="#f97316"/>
+    </pattern>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="1200" fill="#0d0f0c"/>
+  <rect width="1200" height="1200" fill="url(#grid)"/>
+  <rect x="56" y="56" width="1088" height="1088" rx="24" fill="none" stroke="#f97316" stroke-width="4"/>
+  <path d="M56 230h1088M56 966h1088" stroke="#f97316" stroke-width="4"/>
+  <g fill="#f97316" font-family="monospace" font-weight="700" letter-spacing="8">
+    <text x="92" y="145" font-size="34">KWAM.DEV // PROJECT 04</text>
+    <text x="92" y="205" font-size="22" opacity=".62">ACCESS LEVEL: UNANNOUNCED</text>
+  </g>
+  <g transform="translate(600 585)" filter="url(#glow)">
+    <circle r="230" fill="#f97316" fill-opacity=".045" stroke="#f97316" stroke-width="8" stroke-dasharray="14 18"/>
+    <path d="M0-190 210 174H-210Z" fill="#11130f" stroke="#f97316" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M0-88v144" stroke="#f97316" stroke-width="32" stroke-linecap="round"/>
+    <circle cy="112" r="19" fill="#f97316"/>
+  </g>
+  <g transform="rotate(-7 600 770)">
+    <rect x="112" y="696" width="976" height="156" fill="#0d0f0c" stroke="#f97316" stroke-width="6"/>
+    <text x="600" y="792" fill="#f1f4e9" font-family="monospace" font-size="54" font-weight="700" letter-spacing="8" text-anchor="middle">UNDER CONSTRUCTION</text>
+  </g>
+  <rect x="56" y="966" width="1088" height="178" fill="url(#hatch)" opacity=".9"/>
+  <rect x="90" y="1004" width="1020" height="100" fill="#0d0f0c"/>
+  <text x="600" y="1070" fill="#f97316" font-family="monospace" font-size="30" font-weight="700" letter-spacing="7" text-anchor="middle">PUBLIC PREVIEW // COMING SOON</text>
+</svg>

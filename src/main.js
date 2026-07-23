@@ -19,6 +19,9 @@ function bootScene() {
   const useRoomBackplate = true;
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const useCompactLayout = () => window.innerWidth < 821
+    || (window.innerWidth <= 1100 && window.innerHeight > window.innerWidth)
+    || (isTouch && window.innerHeight <= 600);
   const renderer = new THREE.WebGLRenderer({ alpha: useRoomBackplate, antialias: !isTouch, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouch ? 1.6 : 2));
   renderer.setSize(app.clientWidth, app.clientHeight);
@@ -35,10 +38,10 @@ function bootScene() {
     scene.fog = new THREE.FogExp2('#100d0a', 0.034);
   }
 
-  const camera = new THREE.PerspectiveCamera(39, app.clientWidth / app.clientHeight, 0.1, 80);
+  const camera = new THREE.PerspectiveCamera(useCompactLayout() ? 44 : 39, app.clientWidth / app.clientHeight, 0.1, 80);
   const desktopPosition = new THREE.Vector3(0, 3.1, 11.5);
   const mobilePosition = new THREE.Vector3(0, 3.7, 12.8);
-  camera.position.copy(window.innerWidth < 820 ? mobilePosition : desktopPosition);
+  camera.position.copy(useCompactLayout() ? mobilePosition : desktopPosition);
 
   scene.add(new THREE.HemisphereLight('#d9ffb3', '#10120d', 1.4));
   const key = new THREE.DirectionalLight('#fff8dc', 3.5);
@@ -129,8 +132,8 @@ function bootScene() {
     const point = cart.mesh.getWorldPosition(new THREE.Vector3());
     point.y += 0.48;
     point.project(camera);
-    cartridgeTooltip.style.left = `${rect.left + ((point.x + 1) / 2) * rect.width}px`;
-    cartridgeTooltip.style.top = `${rect.top + ((1 - point.y) / 2) * rect.height}px`;
+    cartridgeTooltip.style.left = `${((point.x + 1) / 2) * rect.width}px`;
+    cartridgeTooltip.style.top = `${((1 - point.y) / 2) * rect.height}px`;
   }
 
   renderer.domElement.addEventListener('pointermove', (event) => {
@@ -140,7 +143,7 @@ function bootScene() {
     const roomAction = hovered ? null : pickRoomInteraction();
     document.body.style.cursor = hovered || roomAction ? 'pointer' : 'default';
     if (hovered) {
-      cartridgeTooltip.textContent = hovered.data.title;
+      cartridgeTooltip.textContent = hovered.data.hoverLabel || hovered.data.title;
       positionCartridgeTooltip(hovered);
       cartridgeTooltip.hidden = false;
     } else {
@@ -175,6 +178,11 @@ function bootScene() {
     if (!button) return;
     const cart = cartridges.find((item) => item.data.id === button.dataset.project);
     if (cart) selectCartridge(cart);
+  });
+
+  document.getElementById('header-about').addEventListener('click', () => {
+    const aboutCartridge = cartridges.find((item) => item.data.id === 'contact');
+    if (aboutCartridge) selectCartridge(aboutCartridge);
   });
 
   function selectCartridge(cart) {
@@ -212,7 +220,7 @@ function bootScene() {
     room.setTV(false);
     room.setPlatformMode(false);
     cameraGoal = {
-      position: (window.innerWidth < 820 ? mobilePosition : desktopPosition).clone(),
+      position: (useCompactLayout() ? mobilePosition : desktopPosition).clone(),
       target: new THREE.Vector3(0, 0.55, -1.25),
     };
     document.querySelector('.hero-copy').classList.remove('is-hidden');
@@ -224,6 +232,7 @@ function bootScene() {
   document.getElementById('detail-close').addEventListener('click', deselect);
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') deselect();
+    trapDetailFocus(event);
   });
 
   const clock = new THREE.Clock();
@@ -276,7 +285,7 @@ function bootScene() {
 
   window.addEventListener('resize', () => {
     camera.aspect = app.clientWidth / app.clientHeight;
-    camera.fov = window.innerWidth < 520 ? 44 : 42;
+    camera.fov = useCompactLayout() ? 44 : 42;
     camera.updateProjectionMatrix();
     renderer.setSize(app.clientWidth, app.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouch ? 1.6 : 2));
@@ -461,7 +470,7 @@ function buildRoom(stage, simplified) {
   const posterSets = {
     'left-poster': [
       ['#ef4444', 'MULTIPLAYER', 'SIMON SAYS'],
-      ['#f97316', 'GODOT 4.5', 'HURRY UP'],
+      ['#f97316', 'PREVIEW SOON', 'UNDER CONSTRUCTION'],
       ['#f4d35e', 'EXPERIMENTS', 'KWAM KASSIM'],
     ],
     'right-poster': [
@@ -1132,9 +1141,34 @@ function syncActiveButton(projectId) {
 }
 
 let tvBootTimer = null;
+let detailReturnFocus = null;
+
+function setDetailBackgroundInert(isInert) {
+  document.querySelectorAll('#app, .site-header, .hero-copy, .project-dock, .hint, #fallback').forEach((element) => {
+    element.inert = isInert;
+  });
+}
+
+function trapDetailFocus(event) {
+  const detail = document.getElementById('detail');
+  if (event.key !== 'Tab' || detail.hidden) return;
+  const focusable = [...detail.querySelectorAll('button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')]
+    .filter((element) => !element.hidden);
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
 
 function openDetail(data, index) {
   const detail = document.getElementById('detail');
+  detailReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   detail.classList.remove('tv-ready');
   detail.style.setProperty('--detail-color', data.color);
   document.getElementById('detail-number').textContent = String(index + 1).padStart(2, '0');
@@ -1142,10 +1176,13 @@ function openDetail(data, index) {
   document.getElementById('detail-tagline').textContent = data.tagline || '';
   document.getElementById('detail-tags').textContent = (data.tags || []).join('  /  ');
   document.getElementById('detail-desc').textContent = data.description;
+  const status = document.getElementById('detail-status');
+  status.textContent = data.status || '';
+  status.hidden = !data.status;
   const links = document.getElementById('detail-links');
   links.replaceChildren();
   const detailLinks = data.route
-    ? [{ label: 'Share Project Page', url: data.route }, ...(data.links || [])]
+    ? [{ label: data.routeLabel || 'View Project Page', url: data.route }, ...(data.links || [])]
     : data.links || [];
   detailLinks.forEach((link) => {
     const anchor = document.createElement('a');
@@ -1157,6 +1194,7 @@ function openDetail(data, index) {
     }
     links.appendChild(anchor);
   });
+  setDetailBackgroundInert(true);
   detail.hidden = false;
   document.getElementById('detail-close').focus();
   tvBootTimer = window.setTimeout(() => detail.classList.add('tv-ready'), 760);
@@ -1167,6 +1205,9 @@ function closeDetail() {
   const detail = document.getElementById('detail');
   detail.hidden = true;
   detail.classList.remove('tv-ready');
+  setDetailBackgroundInert(false);
+  if (detailReturnFocus?.isConnected) detailReturnFocus.focus();
+  detailReturnFocus = null;
 }
 
 function hideHint() {
@@ -1185,14 +1226,21 @@ function buildFallbackGrid() {
     tags.textContent = (project.tags || []).join(' / ');
     const description = document.createElement('p');
     description.textContent = project.description;
+    const status = document.createElement('p');
+    status.className = 'fallback-status';
+    status.textContent = project.status || '';
+    status.hidden = !project.status;
     const links = document.createElement('div');
-    (project.links || []).forEach((link) => {
+    const fallbackLinks = project.route
+      ? [{ label: project.routeLabel || 'View project page', url: project.route }, ...(project.links || [])]
+      : project.links || [];
+    fallbackLinks.forEach((link) => {
       const anchor = document.createElement('a');
       anchor.href = link.url;
       anchor.textContent = link.label;
       links.appendChild(anchor);
     });
-    item.append(title, tags, description, links);
+    item.append(title, tags, description, status, links);
     grid.appendChild(item);
   });
 }

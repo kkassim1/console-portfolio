@@ -8,43 +8,56 @@
       name="description"
       content="The interactive portfolio of Kwam Kassim, a platform engineer and software builder. Each project is a cartridge — pick one to load it up."
     />
+    <meta name="theme-color" content="#052b55" />
+    <link rel="canonical" href="__SITE_URL__/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <!-- Open Graph / social unfurl: crawlers can't read the canvas, so describe it here -->
     <meta property="og:title" content="Kwam Kassim — Platform Engineer & Projects" />
     <meta property="og:description" content="An interactive portfolio of platform-engineering work, software projects, and games." />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kwam Kassim" />
+    <meta property="og:image" content="__SITE_URL__/room-backplate.png" />
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Kwam Kassim — Platform Engineer & Projects" />
+    <meta name="twitter:description" content="Platform engineering, realtime apps, and games—presented as an interactive project console." />
+    <meta name="twitter:image" content="__SITE_URL__/room-backplate.png" />
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
 
-    <header class="site-header">
+      <header class="site-header">
       <a class="brand" href="#" aria-label="Back to console home">
         <span class="brand-mark" aria-hidden="true"></span>
-        <span>KWAM<span class="brand-dim"> KASSIM</span></span>
+        <span class="brand-copy"><span>KWAM<span class="brand-dim"> KASSIM</span></span><small>PLATFORM ENGINEER</small></span>
       </a>
       <div class="header-actions">
-        <a href="/resume/kwam-kassim-resume.pdf">Résumé</a>
-        <a href="https://www.linkedin.com/in/kwam-kassim-660836164/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+        <button id="header-about" type="button">About</button>
+        <a class="header-resume" href="/resume/kwam-kassim-resume.pdf"><span class="action-full">Résumé</span><span class="action-short">CV</span></a>
+        <a class="header-contact" href="mailto:kassimkwam@gmail.com"><span class="action-full">Contact</span><span class="action-short">Email</span></a>
+        <a class="header-linkedin" href="https://www.linkedin.com/in/kwam-kassim-660836164/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
         <span class="system-status" aria-label="System online"><span class="status-light" aria-hidden="true"></span>SYSTEM ONLINE</span>
       </div>
-    </header>
+      </header>
 
-    <section class="hero-copy" aria-labelledby="hero-title">
+      <section class="hero-copy" aria-labelledby="hero-title">
       <p class="eyebrow">KWAM KASSIM / PLATFORM ENGINEER</p>
       <h1 id="hero-title">Build. Ship.<br /><span>Play.</span></h1>
       <p class="hero-description">Platform engineering, realtime apps, and games.</p>
-    </section>
+      </section>
 
-    <nav class="project-dock" aria-label="Select a project">
+      <nav class="project-dock" aria-label="Select a project">
       <button id="library-toggle" class="dock-label" type="button" aria-expanded="false"><span>PROJECT LIBRARY</span><span id="project-count"></span></button>
       <div id="project-list" class="project-list"></div>
-    </nav>
+      </nav>
 
-    <div id="hint" class="hint" aria-hidden="true">
-      <span class="mouse-icon"></span>
-      Drag to explore <i></i> Select a cartridge to load
+      <div id="hint" class="hint" aria-hidden="true">
+        <span class="mouse-icon"></span>
+        Drag to explore <i></i> Select a cartridge to load
+      </div>
+      <div id="cartridge-tooltip" class="cartridge-tooltip" role="status" aria-live="polite" hidden></div>
     </div>
-    <div id="cartridge-tooltip" class="cartridge-tooltip" role="status" aria-live="polite" hidden></div>
 
     <div id="detail" class="detail" hidden>
       <button id="detail-close" class="detail-close" aria-label="Back to console"><span>&larr;</span> Back to library</button>
@@ -63,6 +76,7 @@
               <p id="detail-tagline" class="detail-tagline"></p>
               <p id="detail-tags" class="detail-tags"></p>
               <p id="detail-desc"></p>
+              <p id="detail-status" class="detail-status" hidden></p>
               <div id="detail-links" class="detail-links"></div>
             </div>
           </div>
